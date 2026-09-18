@@ -6,13 +6,15 @@
 <title>Listing Appraiser</title>
 <style>
   :root {
-    --bg: #1b1d21;
-    --panel: #232629;
-    --panel-line: #35383d;
-    --ink: #ece8e0;
-    --ink-dim: #9b9d9f;
-    --amber: #e0a848;
-    --teal: #5c8b86;
+    --bg: #f4f3ef;
+    --panel: #ffffff;
+    --panel-line: #e4e2db;
+    --ink: #1e1e1c;
+    --ink-dim: #78776f;
+    --ink-faint: #a8a7a1;
+    --amber: #c98a2e;
+    --teal: #1d8f66;
+    --danger: #c14f34;
     --mono: ui-monospace, "SF Mono", "Cascadia Mono", Consolas, "Roboto Mono", monospace;
     --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
   }
@@ -32,37 +34,49 @@
   .plate::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--teal); display: inline-block; }
   h1 { font-size: 28px; line-height: 1.25; margin: 0 0 10px; font-weight: 650; letter-spacing: -0.01em; }
   header p { color: var(--ink-dim); font-size: 15px; line-height: 1.55; margin: 0 0 32px; max-width: 58ch; }
+
   .panel { background: var(--panel); border: 1px solid var(--panel-line); border-radius: 10px; padding: 22px; margin-bottom: 20px; }
-  label.field-label { display: block; font-size: 13px; color: var(--ink-dim); margin-bottom: 10px; }
-  textarea {
-    width: 100%; min-height: 170px; resize: vertical;
-    background: #16181a; border: 1px solid var(--panel-line); border-radius: 7px;
-    color: var(--ink); font-family: var(--mono); font-size: 13.5px; line-height: 1.55; padding: 14px;
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
   }
-  textarea:focus { outline: none; border-color: var(--teal); }
-  .row { display: flex; align-items: center; justify-content: space-between; margin-top: 16px; gap: 14px; flex-wrap: wrap; }
+  .field { display: flex; flex-direction: column; }
+  .field.full { grid-column: 1 / -1; }
+  label {
+    font-size: 12.5px; color: var(--ink-dim); margin-bottom: 7px;
+  }
+  label .opt { color: #6f7174; font-style: italic; }
+  input, textarea {
+    background: #fbfaf7; border: 1px solid var(--panel-line); border-radius: 7px;
+    color: var(--ink); font-family: var(--mono); font-size: 14px; padding: 11px 13px;
+    width: 100%;
+  }
+  textarea { min-height: 70px; resize: vertical; line-height: 1.5; }
+  input:focus, textarea:focus { outline: none; border-color: var(--teal); }
+  input::placeholder, textarea::placeholder { color: var(--ink-faint); }
+
+  .row { display: flex; align-items: center; justify-content: space-between; margin-top: 20px; gap: 14px; flex-wrap: wrap; }
   .hint { font-size: 12.5px; color: var(--ink-dim); }
   button.run {
-    background: var(--amber); color: #1b1d21; border: none; border-radius: 7px;
+    background: var(--teal); color: #ffffff; border: none; border-radius: 7px;
     padding: 11px 20px; font-size: 14px; font-weight: 650; cursor: pointer;
     font-family: var(--sans); transition: transform 0.08s ease, background 0.15s ease;
   }
-  button.run:hover { background: #eab668; }
-  button.run:active { transform: scale(0.98); }
+  button.run:hover:not(:disabled) { background: #227a56; }
+  button.run:active:not(:disabled) { transform: scale(0.98); }
+  button.run:disabled { background: #d8d6cd; color: #a8a7a1; cursor: not-allowed; }
+
+  #formError { display: none; color: var(--danger); font-size: 13.5px; margin-top: 14px; }
+  #formError.active { display: block; }
+
   #report { display: none; }
   #report.active { display: block; }
   .report-head { border-bottom: 1px solid var(--panel-line); padding-bottom: 16px; margin-bottom: 18px; }
   .vehicle-name { font-size: 20px; font-weight: 650; }
   .vehicle-sub { font-family: var(--mono); font-size: 12.5px; color: var(--ink-dim); margin-top: 4px; }
-  .specs { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 22px; }
-  .spec { border: 1px solid var(--panel-line); border-radius: 7px; padding: 12px 14px; }
-  .spec .k { font-size: 11px; color: var(--ink-dim); margin-bottom: 5px; }
-  .spec .v { font-family: var(--mono); font-size: 15px; }
-  .spec .v.missing { color: var(--ink-dim); font-style: italic; font-size: 13px; }
-  .note {
-    font-size: 13px; color: var(--ink-dim); background: rgba(224,168,72,0.08);
-    border: 1px solid var(--panel-line); border-radius: 7px; padding: 12px 14px; margin-bottom: 20px; line-height: 1.5;
-  }
+
   .links-label { font-size: 12px; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 12px; }
   .links { display: flex; flex-direction: column; gap: 10px; }
   .link-row {
@@ -70,15 +84,12 @@
     border: 1px solid var(--panel-line); border-radius: 8px; padding: 13px 16px;
     text-decoration: none; color: var(--ink); transition: border-color 0.15s ease, background 0.15s ease;
   }
-  .link-row:hover { border-color: var(--teal); background: rgba(92,139,134,0.08); }
+  .link-row:hover { border-color: var(--teal); background: rgba(29,143,102,0.06); }
   .link-row .src { font-weight: 600; font-size: 14.5px; }
   .link-row .desc { font-size: 12px; color: var(--ink-dim); margin-top: 2px; }
   .link-row .arrow { font-family: var(--mono); color: var(--teal); font-size: 16px; }
-  footer { text-align: center; color: var(--ink-dim); font-size: 12px; margin-top: 40px; line-height: 1.6; }
-  footer a { color: var(--teal); }
 
   .ai-section { border-top: 1px solid var(--panel-line); margin-top: 24px; padding-top: 20px; }
-  .ai-btn { display: inline-block; }
   #aiStatus {
     display: none; align-items: center; gap: 10px;
     font-family: var(--mono); font-size: 13px; color: var(--teal); margin-top: 14px;
@@ -90,256 +101,237 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
   #aiError {
-    display: none; border: 1px solid var(--amber); background: rgba(224,168,72,0.08);
+    display: none; border: 1px solid var(--amber); background: rgba(201,138,46,0.08);
     color: var(--ink); border-radius: 8px; padding: 13px 15px; font-size: 13.5px;
     margin-top: 14px; line-height: 1.55;
   }
   #aiError.active { display: block; }
-  #aiResult {
-    display: none; font-size: 14.5px; line-height: 1.65; margin-top: 16px;
-    white-space: pre-wrap;
+  #aiError .detail {
+    font-family: var(--mono); font-size: 11.5px; color: var(--ink-dim);
+    margin-top: 9px; word-break: break-word; line-height: 1.45;
   }
+  #aiResult { display: none; margin-top: 16px; }
   #aiResult.active { display: block; }
   .verdict-band { border-radius: 8px; padding: 14px 16px; margin-bottom: 14px; border: 1px solid var(--panel-line); }
-  .verdict-band.good { border-color: var(--teal); background: rgba(92,139,134,0.1); }
-  .verdict-band.fair { border-color: var(--amber); background: rgba(224,168,72,0.1); }
-  .verdict-band.high { border-color: #c86a5a; background: rgba(200,106,90,0.1); }
+  .verdict-band.good { border-color: var(--teal); background: rgba(29,143,102,0.08); }
+  .verdict-band.fair { border-color: var(--amber); background: rgba(201,138,46,0.08); }
+  .verdict-band.high { border-color: var(--danger); background: rgba(193,79,52,0.08); }
   .verdict-label { font-family: var(--mono); font-size: 11px; letter-spacing: 0.03em; color: var(--ink-dim); margin-bottom: 5px; }
   .verdict-text { font-size: 15px; font-weight: 600; }
+  .analysis { font-size: 14.5px; line-height: 1.65; }
+
+  footer { text-align: center; color: var(--ink-dim); font-size: 12px; margin-top: 40px; line-height: 1.6; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
     <div class="plate">listing appraiser</div>
-    <h1>Paste a listing. Jump straight to its value.</h1>
-    <p>Paste the text of a Facebook Marketplace, OfferUp, or Craigslist car listing. This pulls out the year, make, model, and mileage, then hands you direct links to Kelley Blue Book, Edmunds, and J.D. Power (NADA) — plus an AI summary that checks current market data and tells you whether the asking price holds up.</p>
+    <h1>Enter the car. Get a straight read on the price.</h1>
+    <p>Fill in what the listing tells you. You'll get direct links to Kelley Blue Book, Edmunds, and J.D. Power (NADA), plus an AI summary that checks current market data and says whether the asking price holds up.</p>
   </header>
 
   <div class="panel">
-    <label class="field-label" for="listing">Listing text</label>
-    <textarea id="listing" placeholder="Paste the full listing here — title, description, mileage, price, and any details about condition or trim...">2016 GMC Sierra 1500, 194,000 miles, asking $9,500. Runs and drives great, regular maintenance, clean title.</textarea>
-    <div class="row">
-      <div class="hint">Works best with year, make, model, and mileage included.</div>
-      <button class="run" id="runBtn">Get value links</button>
+    <div class="grid">
+      <div class="field">
+        <label for="year">Year</label>
+        <input type="text" id="year" inputmode="numeric" placeholder="2016" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="make">Make</label>
+        <input type="text" id="make" placeholder="GMC" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="model">Model</label>
+        <input type="text" id="model" placeholder="Sierra 1500" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="trim">Trim <span class="opt">optional</span></label>
+        <input type="text" id="trim" placeholder="SLE, SLT, Denali" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="mileage">Mileage</label>
+        <input type="text" id="mileage" inputmode="numeric" placeholder="194000" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="price">Asking price</label>
+        <input type="text" id="price" inputmode="numeric" placeholder="9500" autocomplete="off">
+      </div>
+      <div class="field full">
+        <label for="condition">Condition &amp; notes</label>
+        <textarea id="condition" placeholder="Clean title, runs and drives great, some rust on rocker panels, new tires"></textarea>
+      </div>
     </div>
+
+    <div class="row">
+      <div class="hint">Year, make, and model are required. The rest sharpens the estimate.</div>
+      <button class="run" id="runBtn">Look it up</button>
+    </div>
+    <div id="formError"></div>
   </div>
 
   <div class="panel" id="report">
     <div class="report-head">
-      <div class="vehicle-name" id="vehicleName">—</div>
-      <div class="vehicle-sub" id="vehicleSub">—</div>
+      <div class="vehicle-name" id="vehicleName">&mdash;</div>
+      <div class="vehicle-sub" id="vehicleSub">&mdash;</div>
     </div>
-
-    <div class="specs" id="specs"></div>
-
-    <div class="note" id="lowConfidenceNote" style="display:none;"></div>
 
     <div class="links-label">Check the value here</div>
     <div class="links" id="linksArea"></div>
 
     <div class="ai-section">
       <div class="links-label" style="margin-top: 0;">AI summary</div>
-      <button class="run ai-btn" id="aiBtn">Get AI summary</button>
-      <div id="aiStatus"><div class="spinner"></div><span id="aiStatusText">Thinking…</span></div>
+      <button class="run" id="aiBtn">Get AI summary</button>
+      <div id="aiStatus"><div class="spinner"></div><span id="aiStatusText">Thinking</span></div>
       <div id="aiError"></div>
       <div id="aiResult"></div>
     </div>
   </div>
 
   <footer>
-    Self-hosted. The parsing and value links run entirely in your browser. The AI summary calls your own private backend function, which holds your Gemini API key server-side — the key is never exposed to this page. Runs on Google's free tier.
+    Self-hosted. The value links are built in your browser. The AI summary calls your own private backend function, which holds your Gemini API key server-side &mdash; the key is never exposed to this page.
   </footer>
 </div>
 
 <script>
-const MAKES = [
-  "acura","alfa romeo","aston martin","audi","bentley","bmw","buick","cadillac",
-  "chevrolet","chevy","chrysler","dodge","ferrari","fiat","ford","genesis","gmc",
-  "honda","hyundai","infiniti","jaguar","jeep","kia","lamborghini","land rover",
-  "lexus","lincoln","maserati","mazda","mclaren","mercedes-benz","mercedes","mini",
-  "mitsubishi","nissan","polestar","porsche","ram","rivian","rolls-royce","saab",
-  "scion","smart","subaru","suzuki","tesla","toyota","volkswagen","vw","volvo"
-];
+const $ = id => document.getElementById(id);
 
-const MAKE_CANON = {
-  "chevy": "Chevrolet",
-  "vw": "Volkswagen",
-  "mercedes": "Mercedes-Benz"
-};
-
-function titleCase(s) {
-  return s.replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+function digitsOnly(s) {
+  const n = parseInt(String(s).replace(/[^0-9]/g, ''), 10);
+  return Number.isFinite(n) ? n : null;
 }
 
-function parseListing(text) {
-  const lower = text.toLowerCase();
-  const result = { year: null, make: null, model: null, mileage: null, price: null };
-
-  // Year: a 4-digit number between 1980 and next year, reasonably early in the text
-  const yearMatch = text.match(/\b(19[8-9]\d|20[0-4]\d)\b/);
-  if (yearMatch) result.year = yearMatch[1];
-
-  // Make: find earliest matching make in the text
-  let makeIndex = -1, makeRaw = null;
-  MAKES.forEach(m => {
-    const idx = lower.indexOf(m);
-    if (idx !== -1 && (makeIndex === -1 || idx < makeIndex)) {
-      makeIndex = idx;
-      makeRaw = m;
-    }
-  });
-  if (makeRaw) {
-    result.make = MAKE_CANON[makeRaw] || titleCase(makeRaw);
-    // Model: grab up to 2 words immediately following the make in the original text
-    const afterMake = text.slice(makeIndex + makeRaw.length);
-    const modelMatch = afterMake.match(/^[\s,-]*([A-Za-z0-9][\w-]*(?:\s+[A-Za-z0-9][\w-]*)?)/);
-    if (modelMatch) {
-      let candidate = modelMatch[1].trim();
-      // strip trailing punctuation/stopwords
-      candidate = candidate.replace(/[.,;:!]+$/, '');
-      const stopwords = ["for","sale","with","only","clean","title","miles","mi","asking","price","runs","drives"];
-      const words = candidate.split(/\s+/).filter(w => !stopwords.includes(w.toLowerCase()));
-      if (words.length) result.model = words.join(" ");
-    }
-  }
-
-  // Mileage: number followed by miles/mi, or "xxxk miles"
-  const mileageMatch = text.match(/([\d,]{2,3}(?:,\d{3})*|\d+)\s*(?:k\b)?\s*(?:miles|mi\b)/i)
-    || text.match(/(\d{2,3})\s*k\s*(?:miles|mi)?/i);
-  if (mileageMatch) {
-    let raw = mileageMatch[1].replace(/,/g, '');
-    let num = parseInt(raw, 10);
-    if (/k/i.test(mileageMatch[0]) && num < 1000) num *= 1000;
-    result.mileage = num;
-  }
-
-  // Price: $ followed by digits
-  const priceMatch = text.match(/\$\s?([\d,]{3,7})/);
-  if (priceMatch) result.price = parseInt(priceMatch[1].replace(/,/g, ''), 10);
-
-  return result;
+function readForm() {
+  return {
+    year: $('year').value.trim(),
+    make: $('make').value.trim(),
+    model: $('model').value.trim(),
+    trim: $('trim').value.trim(),
+    mileage: digitsOnly($('mileage').value),
+    price: digitsOnly($('price').value),
+    condition: $('condition').value.trim()
+  };
 }
 
 function slugify(s) {
   return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 }
 
-function buildLinks(data) {
-  const year = data.year || '';
-  const make = data.make || '';
-  const model = data.model || '';
-  const query = [year, make, model].filter(Boolean).join(' ');
-  const makeSlug = slugify(make);
-  const modelSlug = slugify(model);
-
+function buildLinks(d) {
+  const query = [d.year, d.make, d.model, d.trim].filter(Boolean).join(' ');
+  const makeSlug = slugify(d.make);
+  const modelSlug = slugify(d.model);
   const links = [];
 
-  if (year && make && model) {
-    links.push({
-      src: "Kelley Blue Book",
-      desc: "Direct value page for this year/make/model",
-      url: `https://www.kbb.com/${makeSlug}/${modelSlug}/${year}/`
-    });
-    links.push({
-      src: "Edmunds",
-      desc: "Direct appraisal page for this year/make/model",
-      url: `https://www.edmunds.com/${makeSlug}/${modelSlug}/${year}/`
-    });
-    links.push({
-      src: "J.D. Power (NADA values)",
-      desc: "Direct pricing page — NADA guides are now part of J.D. Power",
-      url: `https://www.jdpower.com/cars/${year}/${makeSlug}/${modelSlug}`
-    });
-  }
-
-  // Always include search fallbacks in case a direct link 404s or the parse was rough
+  links.push({
+    src: "Kelley Blue Book",
+    desc: "Direct value page for this year, make, and model",
+    url: `https://www.kbb.com/${makeSlug}/${modelSlug}/${d.year}/`
+  });
+  links.push({
+    src: "Edmunds",
+    desc: "Direct appraisal page for this year, make, and model",
+    url: `https://www.edmunds.com/${makeSlug}/${modelSlug}/${d.year}/`
+  });
+  links.push({
+    src: "J.D. Power (NADA values)",
+    desc: "NADA guides are now part of J.D. Power",
+    url: `https://www.jdpower.com/cars/${d.year}/${makeSlug}/${modelSlug}`
+  });
   links.push({
     src: "Search KBB",
-    desc: `Google search scoped to kbb.com for "${query || 'your vehicle'}"`,
+    desc: "Fallback search, in case the direct link misses",
     url: `https://www.google.com/search?q=${encodeURIComponent('site:kbb.com ' + query + ' value')}`
   });
   links.push({
     src: "Search Edmunds",
-    desc: `Google search scoped to edmunds.com for "${query || 'your vehicle'}"`,
+    desc: "Fallback search, in case the direct link misses",
     url: `https://www.google.com/search?q=${encodeURIComponent('site:edmunds.com ' + query)}`
   });
   links.push({
     src: "Comparable listings",
-    desc: "See what similar ones are actually selling for right now",
-    url: `https://www.google.com/search?q=${encodeURIComponent(query + ' for sale ' + (data.mileage ? data.mileage + ' miles' : ''))}`
+    desc: "What similar ones are actually selling for right now",
+    url: `https://www.google.com/search?q=${encodeURIComponent(query + ' for sale' + (d.mileage ? ' ' + d.mileage + ' miles' : ''))}`
   });
 
   return links;
 }
 
-function render(data) {
-  document.getElementById('vehicleName').textContent =
-    [data.year, data.make, data.model].filter(Boolean).join(' ') || 'Vehicle details not fully recognized';
-  document.getElementById('vehicleSub').textContent =
-    [data.mileage ? data.mileage.toLocaleString() + ' miles' : null,
-     data.price ? '$' + data.price.toLocaleString() + ' asking' : null]
-      .filter(Boolean).join(' · ') || 'No mileage or price detected';
+function render(d) {
+  $('vehicleName').textContent = [d.year, d.make, d.model, d.trim].filter(Boolean).join(' ');
+  $('vehicleSub').textContent = [
+    d.mileage ? d.mileage.toLocaleString() + ' miles' : null,
+    d.price ? '$' + d.price.toLocaleString() + ' asking' : null
+  ].filter(Boolean).join(' \u00b7 ') || 'No mileage or price entered';
 
-  const specsEl = document.getElementById('specs');
-  specsEl.innerHTML = '';
-  [
-    ['Year', data.year],
-    ['Make', data.make],
-    ['Model', data.model],
-    ['Mileage', data.mileage ? data.mileage.toLocaleString() : null],
-    ['Asking price', data.price ? '$' + data.price.toLocaleString() : null]
-  ].forEach(([k, v]) => {
-    const div = document.createElement('div');
-    div.className = 'spec';
-    div.innerHTML = v
-      ? `<div class="k">${k}</div><div class="v">${v}</div>`
-      : `<div class="k">${k}</div><div class="v missing">not found</div>`;
-    specsEl.appendChild(div);
-  });
-
-  const noteEl = document.getElementById('lowConfidenceNote');
-  if (!data.year || !data.make || !data.model) {
-    noteEl.style.display = 'block';
-    noteEl.textContent = "Couldn't confidently pick out every detail — double-check the extracted fields above. The search links below will still work using whatever was found, or you can search manually with the full details.";
-  } else {
-    noteEl.style.display = 'none';
-  }
-
-  const linksArea = document.getElementById('linksArea');
+  const linksArea = $('linksArea');
   linksArea.innerHTML = '';
-  buildLinks(data).forEach(link => {
+  buildLinks(d).forEach(link => {
     const a = document.createElement('a');
     a.href = link.url;
     a.target = '_blank';
     a.rel = 'noopener noreferrer';
     a.className = 'link-row';
-    a.innerHTML = `<div><div class="src">${link.src}</div><div class="desc">${link.desc}</div></div><div class="arrow">↗</div>`;
+    const left = document.createElement('div');
+    const src = document.createElement('div');
+    src.className = 'src';
+    src.textContent = link.src;
+    const desc = document.createElement('div');
+    desc.className = 'desc';
+    desc.textContent = link.desc;
+    left.appendChild(src);
+    left.appendChild(desc);
+    const arrow = document.createElement('div');
+    arrow.className = 'arrow';
+    arrow.textContent = '\u2197';
+    a.appendChild(left);
+    a.appendChild(arrow);
     linksArea.appendChild(a);
   });
 
-  document.getElementById('report').classList.add('active');
+  $('aiResult').classList.remove('active');
+  $('aiError').classList.remove('active');
+  $('report').classList.add('active');
 }
 
-document.getElementById('runBtn').addEventListener('click', () => {
-  const text = document.getElementById('listing').value.trim();
-  if (!text) return;
-  const data = parseListing(text);
-  render(data);
+$('runBtn').addEventListener('click', () => {
+  const d = readForm();
+  const err = $('formError');
+
+  const missing = [];
+  if (!d.year) missing.push('year');
+  if (!d.make) missing.push('make');
+  if (!d.model) missing.push('model');
+
+  if (missing.length) {
+    err.textContent = 'Still need the ' + missing.join(', ') + '.';
+    err.classList.add('active');
+    return;
+  }
+
+  err.classList.remove('active');
+  render(d);
+  $('report').scrollIntoView({ behavior: 'smooth', block: 'start' });
 });
 
-// --- AI summary (only works when this page is running inside Claude's own preview) ---
+['year','make','model','trim','mileage','price'].forEach(id => {
+  $(id).addEventListener('keydown', e => {
+    if (e.key === 'Enter') $('runBtn').click();
+  });
+});
 
-const aiBtn = document.getElementById('aiBtn');
-const aiStatus = document.getElementById('aiStatus');
-const aiStatusText = document.getElementById('aiStatusText');
-const aiError = document.getElementById('aiError');
-const aiResult = document.getElementById('aiResult');
+// --- AI summary ---
+
+const aiBtn = $('aiBtn');
+const aiStatus = $('aiStatus');
+const aiStatusText = $('aiStatusText');
+const aiError = $('aiError');
+const aiResult = $('aiResult');
 
 const aiStatusMessages = [
-  "Reading the listing…",
-  "Checking current market values…",
-  "Comparing against the asking price…"
+  "Checking current market values",
+  "Looking at comparable listings",
+  "Comparing against the asking price"
 ];
 
 function cycleAiStatus() {
@@ -348,15 +340,21 @@ function cycleAiStatus() {
   return setInterval(() => {
     i = (i + 1) % aiStatusMessages.length;
     aiStatusText.textContent = aiStatusMessages[i];
-  }, 2200);
+  }, 2400);
 }
 
-function extractJson(text) {
-  const cleaned = text.replace(/```json/gi, '').replace(/```/g, '').trim();
-  const start = cleaned.indexOf('{');
-  const end = cleaned.lastIndexOf('}');
-  if (start === -1 || end === -1) throw new Error('No JSON object found in response');
-  return JSON.parse(cleaned.slice(start, end + 1));
+function showAiError(msg, detail) {
+  aiError.innerHTML = '';
+  const p = document.createElement('div');
+  p.textContent = msg;
+  aiError.appendChild(p);
+  if (detail) {
+    const dv = document.createElement('div');
+    dv.className = 'detail';
+    dv.textContent = detail;
+    aiError.appendChild(dv);
+  }
+  aiError.classList.add('active');
 }
 
 function renderAiResult(data) {
@@ -364,30 +362,31 @@ function renderAiResult(data) {
 
   const band = document.createElement('div');
   band.className = 'verdict-band ' + (data.verdict_tier || 'fair');
-  band.innerHTML = `<div class="verdict-label">verdict</div><div class="verdict-text">${data.verdict || ''}</div>`;
+  const vlabel = document.createElement('div');
+  vlabel.className = 'verdict-label';
+  vlabel.textContent = 'verdict';
+  const vtext = document.createElement('div');
+  vtext.className = 'verdict-text';
+  vtext.textContent = data.verdict || '';
+  band.appendChild(vlabel);
+  band.appendChild(vtext);
   aiResult.appendChild(band);
 
   if (data.value_low && data.value_high) {
     const rangeP = document.createElement('div');
-    rangeP.style.fontFamily = 'var(--mono)';
-    rangeP.style.fontSize = '13px';
-    rangeP.style.color = 'var(--ink-dim)';
-    rangeP.style.marginBottom = '12px';
-    rangeP.textContent = `Estimated private-party range: $${Number(data.value_low).toLocaleString()} – $${Number(data.value_high).toLocaleString()}`;
+    rangeP.style.cssText = 'font-family: var(--mono); font-size: 13px; color: var(--ink-dim); margin-bottom: 12px;';
+    rangeP.textContent = 'Estimated private-party range: $' + Number(data.value_low).toLocaleString() + ' \u2013 $' + Number(data.value_high).toLocaleString();
     aiResult.appendChild(rangeP);
   }
 
   const analysisP = document.createElement('div');
+  analysisP.className = 'analysis';
   analysisP.textContent = data.analysis || '';
   aiResult.appendChild(analysisP);
 
   if (data.sources_note) {
     const src = document.createElement('div');
-    src.style.fontSize = '12.5px';
-    src.style.color = 'var(--ink-dim)';
-    src.style.marginTop = '14px';
-    src.style.borderTop = '1px solid var(--panel-line)';
-    src.style.paddingTop = '12px';
+    src.style.cssText = 'font-size: 12.5px; color: var(--ink-dim); margin-top: 14px; border-top: 1px solid var(--panel-line); padding-top: 12px;';
     src.textContent = 'Sources: ' + data.sources_note;
     aiResult.appendChild(src);
   }
@@ -396,10 +395,9 @@ function renderAiResult(data) {
 }
 
 aiBtn.addEventListener('click', async () => {
-  const listing = document.getElementById('listing').value.trim();
-  if (!listing) {
-    aiError.textContent = 'Paste a listing first.';
-    aiError.classList.add('active');
+  const d = readForm();
+  if (!d.year || !d.make || !d.model) {
+    showAiError('Fill in year, make, and model first.');
     return;
   }
 
@@ -413,29 +411,25 @@ aiBtn.addEventListener('click', async () => {
     const response = await fetch("/api/appraise", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ listing })
+      body: JSON.stringify(d)
     });
 
     const parsed = await response.json().catch(() => null);
 
     if (!response.ok) {
-      const msg = (parsed && parsed.error)
-        ? parsed.error
-        : `The valuation request failed (${response.status}).`;
-      throw new Error(msg);
-    }
-
-    if (!parsed) throw new Error('Empty response from the valuation service.');
-
-    if (parsed.error) {
-      aiError.textContent = parsed.error;
-      aiError.classList.add('active');
+      showAiError(
+        (parsed && parsed.error) ? parsed.error : 'The request failed (' + response.status + ').',
+        parsed && parsed.detail ? parsed.detail : null
+      );
+    } else if (!parsed) {
+      showAiError('Got an empty response back. Try again.');
+    } else if (parsed.error) {
+      showAiError(parsed.error, parsed.detail || null);
     } else {
       renderAiResult(parsed);
     }
   } catch (err) {
-    aiError.textContent = err.message || "The AI summary couldn't run. The value links above still work.";
-    aiError.classList.add('active');
+    showAiError("Couldn't reach the valuation service.", err.message);
   } finally {
     clearInterval(spin);
     aiStatus.classList.remove('active');
