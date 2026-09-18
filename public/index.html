@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Listing Appraiser</title>
+<style>
+  :root {
+    --bg: #1b1d21;
+    --panel: #232629;
+    --panel-line: #35383d;
+    --ink: #ece8e0;
+    --ink-dim: #9b9d9f;
+    --amber: #e0a848;
+    --teal: #5c8b86;
+    --mono: ui-monospace, "SF Mono", "Cascadia Mono", Consolas, "Roboto Mono", monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg); color: var(--ink);
+    font-family: var(--sans); min-height: 100vh;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 48px 24px 80px; }
+  .plate {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.04em;
+    color: var(--ink-dim); border: 1px solid var(--panel-line);
+    border-radius: 4px; padding: 4px 10px; margin-bottom: 18px;
+  }
+  .plate::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--teal); display: inline-block; }
+  h1 { font-size: 28px; line-height: 1.25; margin: 0 0 10px; font-weight: 650; letter-spacing: -0.01em; }
+  header p { color: var(--ink-dim); font-size: 15px; line-height: 1.55; margin: 0 0 32px; max-width: 58ch; }
+  .panel { background: var(--panel); border: 1px solid var(--panel-line); border-radius: 10px; padding: 22px; margin-bottom: 20px; }
+  label.field-label { display: block; font-size: 13px; color: var(--ink-dim); margin-bottom: 10px; }
+  textarea {
+    width: 100%; min-height: 170px; resize: vertical;
+    background: #16181a; border: 1px solid var(--panel-line); border-radius: 7px;
+    color: var(--ink); font-family: var(--mono); font-size: 13.5px; line-height: 1.55; padding: 14px;
+  }
+  textarea:focus { outline: none; border-color: var(--teal); }
+  .row { display: flex; align-items: center; justify-content: space-between; margin-top: 16px; gap: 14px; flex-wrap: wrap; }
+  .hint { font-size: 12.5px; color: var(--ink-dim); }
+  button.run {
+    background: var(--amber); color: #1b1d21; border: none; border-radius: 7px;
+    padding: 11px 20px; font-size: 14px; font-weight: 650; cursor: pointer;
+    font-family: var(--sans); transition: transform 0.08s ease, background 0.15s ease;
+  }
+  button.run:hover { background: #eab668; }
+  button.run:active { transform: scale(0.98); }
+  #report { display: none; }
+  #report.active { display: block; }
+  .report-head { border-bottom: 1px solid var(--panel-line); padding-bottom: 16px; margin-bottom: 18px; }
+  .vehicle-name { font-size: 20px; font-weight: 650; }
+  .vehicle-sub { font-family: var(--mono); font-size: 12.5px; color: var(--ink-dim); margin-top: 4px; }
+  .specs { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 22px; }
+  .spec { border: 1px solid var(--panel-line); border-radius: 7px; padding: 12px 14px; }
+  .spec .k { font-size: 11px; color: var(--ink-dim); margin-bottom: 5px; }
+  .spec .v { font-family: var(--mono); font-size: 15px; }
+  .spec .v.missing { color: var(--ink-dim); font-style: italic; font-size: 13px; }
+  .note {
+    font-size: 13px; color: var(--ink-dim); background: rgba(224,168,72,0.08);
+    border: 1px solid var(--panel-line); border-radius: 7px; padding: 12px 14px; margin-bottom: 20px; line-height: 1.5;
+  }
+  .links-label { font-size: 12px; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 12px; }
+  .links { display: flex; flex-direction: column; gap: 10px; }
+  .link-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    border: 1px solid var(--panel-line); border-radius: 8px; padding: 13px 16px;
+    text-decoration: none; color: var(--ink); transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  .link-row:hover { border-color: var(--teal); background: rgba(92,139,134,0.08); }
+  .link-row .src { font-weight: 600; font-size: 14.5px; }
+  .link-row .desc { font-size: 12px; color: var(--ink-dim); margin-top: 2px; }
+  .link-row .arrow { font-family: var(--mono); color: var(--teal); font-size: 16px; }
+  footer { text-align: center; color: var(--ink-dim); font-size: 12px; margin-top: 40px; line-height: 1.6; }
+  footer a { color: var(--teal); }
+
+  .ai-section { border-top: 1px solid var(--panel-line); margin-top: 24px; padding-top: 20px; }
+  .ai-btn { display: inline-block; }
+  #aiStatus {
+    display: none; align-items: center; gap: 10px;
+    font-family: var(--mono); font-size: 13px; color: var(--teal); margin-top: 14px;
+  }
+  #aiStatus.active { display: flex; }
+  .spinner {
+    width: 13px; height: 13px; border: 2px solid var(--panel-line);
+    border-top-color: var(--teal); border-radius: 50%; animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #aiError {
+    display: none; border: 1px solid var(--amber); background: rgba(224,168,72,0.08);
+    color: var(--ink); border-radius: 8px; padding: 13px 15px; font-size: 13.5px;
+    margin-top: 14px; line-height: 1.55;
+  }
+  #aiError.active { display: block; }
+  #aiResult {
+    display: none; font-size: 14.5px; line-height: 1.65; margin-top: 16px;
+    white-space: pre-wrap;
+  }
+  #aiResult.active { display: block; }
+  .verdict-band { border-radius: 8px; padding: 14px 16px; margin-bottom: 14px; border: 1px solid var(--panel-line); }
+  .verdict-band.good { border-color: var(--teal); background: rgba(92,139,134,0.1); }
+  .verdict-band.fair { border-color: var(--amber); background: rgba(224,168,72,0.1); }
+  .verdict-band.high { border-color: #c86a5a; background: rgba(200,106,90,0.1); }
+  .verdict-label { font-family: var(--mono); font-size: 11px; letter-spacing: 0.03em; color: var(--ink-dim); margin-bottom: 5px; }
+  .verdict-text { font-size: 15px; font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="plate">listing appraiser</div>
+    <h1>Paste a listing. Jump straight to its value.</h1>
+    <p>Paste the text of a Facebook Marketplace, OfferUp, or Craigslist car listing. This pulls out the year, make, model, and mileage, then hands you direct links to Kelley Blue Book, Edmunds, and J.D. Power (NADA) — plus an AI summary that checks current market data and tells you whether the asking price holds up.</p>
+  </header>
+
+  <div class="panel">
+    <label class="field-label" for="listing">Listing text</label>
+    <textarea id="listing" placeholder="Paste the full listing here — title, description, mileage, price, and any details about condition or trim...">2016 GMC Sierra 1500, 194,000 miles, asking $9,500. Runs and drives great, regular maintenance, clean title.</textarea>
+    <div class="row">
+      <div class="hint">Works best with year, make, model, and mileage included.</div>
+      <button class="run" id="runBtn">Get value links</button>
+    </div>
+  </div>
+
+  <div class="panel" id="report">
+    <div class="report-head">
+      <div class="vehicle-name" id="vehicleName">—</div>
+      <div class="vehicle-sub" id="vehicleSub">—</div>
+    </div>
+
+    <div class="specs" id="specs"></div>
+
+    <div class="note" id="lowConfidenceNote" style="display:none;"></div>
+
+    <div class="links-label">Check the value here</div>
+    <div class="links" id="linksArea"></div>
+
+    <div class="ai-section">
+      <div class="links-label" style="margin-top: 0;">AI summary</div>
+      <button class="run ai-btn" id="aiBtn">Get AI summary</button>
+      <div id="aiStatus"><div class="spinner"></div><span id="aiStatusText">Thinking…</span></div>
+      <div id="aiError"></div>
+      <div id="aiResult"></div>
+    </div>
+  </div>
+
+  <footer>
+    Self-hosted. The parsing and value links run entirely in your browser. The AI summary calls your own private backend function, which holds your Gemini API key server-side — the key is never exposed to this page. Runs on Google's free tier.
+  </footer>
+</div>
+
+<script>
+const MAKES = [
+  "acura","alfa romeo","aston martin","audi","bentley","bmw","buick","cadillac",
+  "chevrolet","chevy","chrysler","dodge","ferrari","fiat","ford","genesis","gmc",
+  "honda","hyundai","infiniti","jaguar","jeep","kia","lamborghini","land rover",
+  "lexus","lincoln","maserati","mazda","mclaren","mercedes-benz","mercedes","mini",
+  "mitsubishi","nissan","polestar","porsche","ram","rivian","rolls-royce","saab",
+  "scion","smart","subaru","suzuki","tesla","toyota","volkswagen","vw","volvo"
+];
+
+const MAKE_CANON = {
+  "chevy": "Chevrolet",
+  "vw": "Volkswagen",
+  "mercedes": "Mercedes-Benz"
+};
+
+function titleCase(s) {
+  return s.replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+}
+
+function parseListing(text) {
+  const lower = text.toLowerCase();
+  const result = { year: null, make: null, model: null, mileage: null, price: null };
+
+  // Year: a 4-digit number between 1980 and next year, reasonably early in the text
+  const yearMatch = text.match(/\b(19[8-9]\d|20[0-4]\d)\b/);
+  if (yearMatch) result.year = yearMatch[1];
+
+  // Make: find earliest matching make in the text
+  let makeIndex = -1, makeRaw = null;
+  MAKES.forEach(m => {
+    const idx = lower.indexOf(m);
+    if (idx !== -1 && (makeIndex === -1 || idx < makeIndex)) {
+      makeIndex = idx;
+      makeRaw = m;
+    }
+  });
+  if (makeRaw) {
+    result.make = MAKE_CANON[makeRaw] || titleCase(makeRaw);
+    // Model: grab up to 2 words immediately following the make in the original text
+    const afterMake = text.slice(makeIndex + makeRaw.length);
+    const modelMatch = afterMake.match(/^[\s,-]*([A-Za-z0-9][\w-]*(?:\s+[A-Za-z0-9][\w-]*)?)/);
+    if (modelMatch) {
+      let candidate = modelMatch[1].trim();
+      // strip trailing punctuation/stopwords
+      candidate = candidate.replace(/[.,;:!]+$/, '');
+      const stopwords = ["for","sale","with","only","clean","title","miles","mi","asking","price","runs","drives"];
+      const words = candidate.split(/\s+/).filter(w => !stopwords.includes(w.toLowerCase()));
+      if (words.length) result.model = words.join(" ");
+    }
+  }
+
+  // Mileage: number followed by miles/mi, or "xxxk miles"
+  const mileageMatch = text.match(/([\d,]{2,3}(?:,\d{3})*|\d+)\s*(?:k\b)?\s*(?:miles|mi\b)/i)
+    || text.match(/(\d{2,3})\s*k\s*(?:miles|mi)?/i);
+  if (mileageMatch) {
+    let raw = mileageMatch[1].replace(/,/g, '');
+    let num = parseInt(raw, 10);
+    if (/k/i.test(mileageMatch[0]) && num < 1000) num *= 1000;
+    result.mileage = num;
+  }
+
+  // Price: $ followed by digits
+  const priceMatch = text.match(/\$\s?([\d,]{3,7})/);
+  if (priceMatch) result.price = parseInt(priceMatch[1].replace(/,/g, ''), 10);
+
+  return result;
+}
+
+function slugify(s) {
+  return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+
+function buildLinks(data) {
+  const year = data.year || '';
+  const make = data.make || '';
+  const model = data.model || '';
+  const query = [year, make, model].filter(Boolean).join(' ');
+  const makeSlug = slugify(make);
+  const modelSlug = slugify(model);
+
+  const links = [];
+
+  if (year && make && model) {
+    links.push({
+      src: "Kelley Blue Book",
+      desc: "Direct value page for this year/make/model",
+      url: `https://www.kbb.com/${makeSlug}/${modelSlug}/${year}/`
+    });
+    links.push({
+      src: "Edmunds",
+      desc: "Direct appraisal page for this year/make/model",
+      url: `https://www.edmunds.com/${makeSlug}/${modelSlug}/${year}/`
+    });
+    links.push({
+      src: "J.D. Power (NADA values)",
+      desc: "Direct pricing page — NADA guides are now part of J.D. Power",
+      url: `https://www.jdpower.com/cars/${year}/${makeSlug}/${modelSlug}`
+    });
+  }
+
+  // Always include search fallbacks in case a direct link 404s or the parse was rough
+  links.push({
+    src: "Search KBB",
+    desc: `Google search scoped to kbb.com for "${query || 'your vehicle'}"`,
+    url: `https://www.google.com/search?q=${encodeURIComponent('site:kbb.com ' + query + ' value')}`
+  });
+  links.push({
+    src: "Search Edmunds",
+    desc: `Google search scoped to edmunds.com for "${query || 'your vehicle'}"`,
+    url: `https://www.google.com/search?q=${encodeURIComponent('site:edmunds.com ' + query)}`
+  });
+  links.push({
+    src: "Comparable listings",
+    desc: "See what similar ones are actually selling for right now",
+    url: `https://www.google.com/search?q=${encodeURIComponent(query + ' for sale ' + (data.mileage ? data.mileage + ' miles' : ''))}`
+  });
+
+  return links;
+}
+
+function render(data) {
+  document.getElementById('vehicleName').textContent =
+    [data.year, data.make, data.model].filter(Boolean).join(' ') || 'Vehicle details not fully recognized';
+  document.getElementById('vehicleSub').textContent =
+    [data.mileage ? data.mileage.toLocaleString() + ' miles' : null,
+     data.price ? '$' + data.price.toLocaleString() + ' asking' : null]
+      .filter(Boolean).join(' · ') || 'No mileage or price detected';
+
+  const specsEl = document.getElementById('specs');
+  specsEl.innerHTML = '';
+  [
+    ['Year', data.year],
+    ['Make', data.make],
+    ['Model', data.model],
+    ['Mileage', data.mileage ? data.mileage.toLocaleString() : null],
+    ['Asking price', data.price ? '$' + data.price.toLocaleString() : null]
+  ].forEach(([k, v]) => {
+    const div = document.createElement('div');
+    div.className = 'spec';
+    div.innerHTML = v
+      ? `<div class="k">${k}</div><div class="v">${v}</div>`
+      : `<div class="k">${k}</div><div class="v missing">not found</div>`;
+    specsEl.appendChild(div);
+  });
+
+  const noteEl = document.getElementById('lowConfidenceNote');
+  if (!data.year || !data.make || !data.model) {
+    noteEl.style.display = 'block';
+    noteEl.textContent = "Couldn't confidently pick out every detail — double-check the extracted fields above. The search links below will still work using whatever was found, or you can search manually with the full details.";
+  } else {
+    noteEl.style.display = 'none';
+  }
+
+  const linksArea = document.getElementById('linksArea');
+  linksArea.innerHTML = '';
+  buildLinks(data).forEach(link => {
+    const a = document.createElement('a');
+    a.href = link.url;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.className = 'link-row';
+    a.innerHTML = `<div><div class="src">${link.src}</div><div class="desc">${link.desc}</div></div><div class="arrow">↗</div>`;
+    linksArea.appendChild(a);
+  });
+
+  document.getElementById('report').classList.add('active');
+}
+
+document.getElementById('runBtn').addEventListener('click', () => {
+  const text = document.getElementById('listing').value.trim();
+  if (!text) return;
+  const data = parseListing(text);
+  render(data);
+});
+
+// --- AI summary (only works when this page is running inside Claude's own preview) ---
+
+const aiBtn = document.getElementById('aiBtn');
+const aiStatus = document.getElementById('aiStatus');
+const aiStatusText = document.getElementById('aiStatusText');
+const aiError = document.getElementById('aiError');
+const aiResult = document.getElementById('aiResult');
+
+const aiStatusMessages = [
+  "Reading the listing…",
+  "Checking current market values…",
+  "Comparing against the asking price…"
+];
+
+function cycleAiStatus() {
+  let i = 0;
+  aiStatusText.textContent = aiStatusMessages[0];
+  return setInterval(() => {
+    i = (i + 1) % aiStatusMessages.length;
+    aiStatusText.textContent = aiStatusMessages[i];
+  }, 2200);
+}
+
+function extractJson(text) {
+  const cleaned = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+  const start = cleaned.indexOf('{');
+  const end = cleaned.lastIndexOf('}');
+  if (start === -1 || end === -1) throw new Error('No JSON object found in response');
+  return JSON.parse(cleaned.slice(start, end + 1));
+}
+
+function renderAiResult(data) {
+  aiResult.innerHTML = '';
+
+  const band = document.createElement('div');
+  band.className = 'verdict-band ' + (data.verdict_tier || 'fair');
+  band.innerHTML = `<div class="verdict-label">verdict</div><div class="verdict-text">${data.verdict || ''}</div>`;
+  aiResult.appendChild(band);
+
+  if (data.value_low && data.value_high) {
+    const rangeP = document.createElement('div');
+    rangeP.style.fontFamily = 'var(--mono)';
+    rangeP.style.fontSize = '13px';
+    rangeP.style.color = 'var(--ink-dim)';
+    rangeP.style.marginBottom = '12px';
+    rangeP.textContent = `Estimated private-party range: $${Number(data.value_low).toLocaleString()} – $${Number(data.value_high).toLocaleString()}`;
+    aiResult.appendChild(rangeP);
+  }
+
+  const analysisP = document.createElement('div');
+  analysisP.textContent = data.analysis || '';
+  aiResult.appendChild(analysisP);
+
+  if (data.sources_note) {
+    const src = document.createElement('div');
+    src.style.fontSize = '12.5px';
+    src.style.color = 'var(--ink-dim)';
+    src.style.marginTop = '14px';
+    src.style.borderTop = '1px solid var(--panel-line)';
+    src.style.paddingTop = '12px';
+    src.textContent = 'Sources: ' + data.sources_note;
+    aiResult.appendChild(src);
+  }
+
+  aiResult.classList.add('active');
+}
+
+aiBtn.addEventListener('click', async () => {
+  const listing = document.getElementById('listing').value.trim();
+  if (!listing) {
+    aiError.textContent = 'Paste a listing first.';
+    aiError.classList.add('active');
+    return;
+  }
+
+  aiError.classList.remove('active');
+  aiResult.classList.remove('active');
+  aiBtn.disabled = true;
+  aiStatus.classList.add('active');
+  const spin = cycleAiStatus();
+
+  try {
+    const response = await fetch("/api/appraise", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ listing })
+    });
+
+    const parsed = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      const msg = (parsed && parsed.error)
+        ? parsed.error
+        : `The valuation request failed (${response.status}).`;
+      throw new Error(msg);
+    }
+
+    if (!parsed) throw new Error('Empty response from the valuation service.');
+
+    if (parsed.error) {
+      aiError.textContent = parsed.error;
+      aiError.classList.add('active');
+    } else {
+      renderAiResult(parsed);
+    }
+  } catch (err) {
+    aiError.textContent = err.message || "The AI summary couldn't run. The value links above still work.";
+    aiError.classList.add('active');
+  } finally {
+    clearInterval(spin);
+    aiStatus.classList.remove('active');
+    aiBtn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/appraise.js": {
+      "maxDuration": 60
+    }
+  }
+}

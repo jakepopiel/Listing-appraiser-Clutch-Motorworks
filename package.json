@@ -1,0 +1,7 @@
+{
+  "name": "listing-appraiser",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Paste a marketplace car listing, get value lookup links and an AI price assessment."
+}
